@@ -100,6 +100,9 @@ class TestRFC3987IEncodingUtils(unittest.TestCase):
             # Reserved and non-url-valid ascii chars are not decoded
             ('/%25%20%02%41%7b/', '/%25%20%02A%7b/'),
 
+            # Non-appropriate characters are not decoded / re-encoded
+            ('/\u2028%E2%80%A8/', '/%E2%80%A8%E2%80%A8/'),
+
             # Broken UTF-8 sequences remain escaped.
             ('/%AAd%AAj%AAa%AAn%AAg%AAo%AA/', '/%AAd%AAj%AAa%AAn%AAg%AAo%AA/'),
             ('/%E2%99%A5%E2%E2%99%A5/', '/♥%E2♥/'),

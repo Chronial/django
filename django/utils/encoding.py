@@ -1,6 +1,8 @@
 import codecs
 import datetime
 import locale
+import stringprep
+import unicodedata
 from decimal import Decimal
 from urllib.parse import quote
 
@@ -199,7 +201,9 @@ def uri_to_iri(uri):
                 append(item)
         iri = b''.join(parts)
 
-    return repercent_broken_unicode(iri).decode('utf-8')
+    step3 = repercent_broken_unicode(iri).decode('utf-8')
+    step4 = repercent_not_appropriate(step3)
+    return step4
 
 
 def escape_uri_path(path):
@@ -232,6 +236,28 @@ def repercent_broken_unicode(path):
         path = repercent_broken_unicode(
             path[:e.start] + force_bytes(repercent) + path[e.end:])
     return path
+
+
+_not_appropriate_points = (
+    stringprep.c22_specials |
+    set(range(0xFDD0, 0xFDF0)) |  # c4
+    stringprep.c6_set | stringprep.c7_set |
+    stringprep.c8_set | stringprep.c9_set)
+
+
+def repercent_not_appropriate(iri):
+    """
+    As per section 3.2 of RFC 3987, step four of converting a URI into an IRI,
+    we need to re-percent-encode all octet produced that are not appropriate
+    in urls
+    """
+    def is_appropriate(char):
+        code = ord(char)
+        return not (code in _not_appropriate_points or
+                    unicodedata.category(char) in ("Zs", "Cc", "Co", "Cs") or
+                    ((code & 0xFFFF) in (0xFFFE, 0xFFFF)))
+
+    return ''.join(c if is_appropriate(c) else quote(c) for c in iri)
 
 
 def filepath_to_uri(path):
